@@ -32,7 +32,7 @@ config = None
 system_prompt = None
 _system_prompt = None
 formatted_prompt = None
-limit_image_size = 768
+limit_image_size = 512
 
 class PromptRequest(BaseModel):
     prompt: str
@@ -61,8 +61,8 @@ async def load_model(model_path: str = "mlx-community/Qwen2.5-VL-3B-Instruct-8bi
 async def set_prompt(request: PromptRequest):
     global system_prompt, formatted_prompt, _system_prompt
     system_prompt = request.prompt
-    _system_prompt = system_prompt + " and use markdown syntax to format the text."
-    formatted_prompt = apply_chat_template(processor, config, _system_prompt, num_images=1)
+    # _system_prompt = system_prompt + " and use markdown syntax to format the text."
+    formatted_prompt = apply_chat_template(processor, config, system_prompt, num_images=1)
     return JSONResponse(content={"message": "System prompt set successfully", "prompt": system_prompt})
 
 # 端點 3：輸入圖像
