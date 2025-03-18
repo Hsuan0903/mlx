@@ -29,8 +29,10 @@ app.add_middleware(
 model = None
 processor = None
 config = None
-system_prompt = "Describe this image."
+system_prompt = None
+_system_prompt = None
 formatted_prompt = None
+limit_image_size = 768
 
 class PromptRequest(BaseModel):
     prompt: str
@@ -57,9 +59,10 @@ async def load_model(model_path: str = "mlx-community/Qwen2.5-VL-3B-Instruct-8bi
 # 端點 2：設置系統提示
 @app.post("/set_prompt")
 async def set_prompt(request: PromptRequest):
-    global system_prompt, formatted_prompt
+    global system_prompt, formatted_prompt, _system_prompt
     system_prompt = request.prompt
-    formatted_prompt = apply_chat_template(processor, config, system_prompt, num_images=1)
+    _system_prompt = system_prompt + " and use markdown syntax to format the text."
+    formatted_prompt = apply_chat_template(processor, config, _system_prompt, num_images=1)
     return JSONResponse(content={"message": "System prompt set successfully", "prompt": system_prompt})
 
 # 端點 3：輸入圖像
@@ -79,11 +82,11 @@ async def input_image(file: UploadFile = File(None), url: str = None):
             image = Image.open(BytesIO(response.content))
         
         # 檢查影像大小
-        if image.size[0] > 1024 or image.size[1] > 1024:
+        if image.size[0] > limit_image_size or image.size[1] > limit_image_size:
             if image.size[0] > image.size[1]:
-                image = image.resize((1024, int(1024 * image.size[1] / image.size[0])))
+                image = image.resize((limit_image_size, int(limit_image_size * image.size[1] / image.size[0])))
             else:
-                image = image.resize((int(1024 * image.size[0] / image.size[1]), 1024))
+                image = image.resize((int(limit_image_size * image.size[0] / image.size[1]), limit_image_size))
         # 保存圖像到臨時文件
         image_path = "temp_image.jpg"
 
