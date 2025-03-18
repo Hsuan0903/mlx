@@ -100,10 +100,6 @@ async def generate_output(request: GenerateRequest):
         output = generate(model, processor, formatted_prompt, [request.image_path], verbose=False)
         end_time = time.time()
         
-        # 刪除臨時圖像文件
-        if os.path.exists(request.image_path):
-            os.remove(request.image_path)
-        
         return JSONResponse(content={"output": output, "time_taken": end_time - start_time})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -121,9 +117,6 @@ async def stream_generate_output(request: GenerateRequest):
             yield f'{{"text": "{chunk.text}"}}\n'  # Send each chunk as a separate JSON line
         end_time = time.time()
         yield f'{{"time_taken": {end_time - start_time}}}\n'
-        
-        if os.path.exists(request.image_path):
-            os.remove(request.image_path)
 
     return StreamingResponse(generate_stream(), media_type="application/x-ndjson")
 # 運行伺服器
