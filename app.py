@@ -1,7 +1,8 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from mlx_vlm import load, generate
+from fastapi.responses import StreamingResponse
+from mlx_vlm import load, generate, stream_generate
 from mlx_vlm.prompt_utils import apply_chat_template
 from mlx_vlm.utils import load_config
 from PIL import Image
@@ -36,6 +37,9 @@ class PromptRequest(BaseModel):
 
 class GenerateRequest(BaseModel):
     image_path: str
+
+class StreamResponse(BaseModel):
+    text: str
 
 # 端點 1：加載模型
 @app.post("/load_model")
@@ -76,6 +80,7 @@ async def input_image(file: UploadFile = File(None), url: str = None):
         
         # 保存圖像到臨時文件
         image_path = "temp_image.jpg"
+
         image.save(image_path)
         return JSONResponse(content={"message": "Image received", "image_path": image_path})
     except Exception as e:
@@ -103,6 +108,24 @@ async def generate_output(request: GenerateRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# 端點 5：流式生成輸出
+@app.post("/stream_generate")
+async def stream_generate_output(request: GenerateRequest):
+    global model, processor, config, system_prompt
+    if model is None or processor is None or config is None:
+        raise HTTPException(status_code=400, detail="Model not loaded. Please load the model first.")
+    
+    async def generate_stream():
+        start_time = time.time()
+        for chunk in stream_generate(model, processor, formatted_prompt, [request.image_path], verbose=False):
+            yield f'{{"text": "{chunk.text}"}}\n'  # Stream each chunk as a separate JSON line
+        end_time = time.time()
+        yield f'{{"time_taken": {end_time - start_time}}}\n'
+        
+        if os.path.exists(request.image_path):
+            os.remove(request.image_path)
+
+    return StreamingResponse(generate_stream(), media_type="application/x-ndjson")
 # 運行伺服器
 if __name__ == "__main__":
     import uvicorn
