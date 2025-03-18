@@ -79,12 +79,11 @@ async def input_image(file: UploadFile = File(None), url: str = None):
             image = Image.open(BytesIO(response.content))
         
         # 檢查影像大小
-        if image.size[0] < 1024 or image.size[1] < 1024:
-            if image.size[0] < image.size[1]:
+        if image.size[0] > 1024 or image.size[1] > 1024:
+            if image.size[0] > image.size[1]:
                 image = image.resize((1024, int(1024 * image.size[1] / image.size[0])))
             else:
                 image = image.resize((int(1024 * image.size[0] / image.size[1]), 1024))
-        
         # 保存圖像到臨時文件
         image_path = "temp_image.jpg"
 
