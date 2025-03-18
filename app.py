@@ -118,7 +118,7 @@ async def stream_generate_output(request: GenerateRequest):
     async def generate_stream():
         start_time = time.time()
         for chunk in stream_generate(model, processor, formatted_prompt, [request.image_path], verbose=False):
-            yield f'{{"text": "{chunk.text}"}}\n'  # Stream each chunk as a separate JSON line
+            yield f'{{"text": "{chunk.text}"}}\n'  # Send each chunk as a separate JSON line
         end_time = time.time()
         yield f'{{"time_taken": {end_time - start_time}}}\n'
         
